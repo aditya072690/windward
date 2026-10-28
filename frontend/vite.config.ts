@@ -10,6 +10,21 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
+      // Optional: talk to Elexon directly from the app if ever needed.
+      '/bmrs': {
+        target: 'https://data.elexon.co.uk',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/bmrs/, '/bmrs'),
+      },
+    },
+  },
+  preview: {
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
     },
   },
 })

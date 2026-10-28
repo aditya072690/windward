@@ -343,7 +343,7 @@ svg { display: block; }
 .controls { display: flex; flex-direction: column; gap: 28px; }
 .controls-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
   gap: 32px;
   align-items: start;
 }
@@ -356,9 +356,13 @@ svg { display: block; }
   color: var(--text-2);
 }
 
+/* Equal-width segmented control. The thumb is sized and moved from the same
+   --seg-index that drives aria-checked, so it can never drift from the label. */
 .segmented {
   position: relative;
-  display: inline-flex;
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   gap: 4px;
   padding: 4px;
   border-radius: var(--r-pill);
@@ -368,11 +372,13 @@ svg { display: block; }
   position: absolute;
   top: 4px;
   left: 4px;
+  width: calc((100% - 12px) / 2);
   height: calc(100% - 8px);
   border-radius: var(--r-pill);
   background: var(--surface);
   box-shadow: var(--shadow-1);
-  transition: transform var(--dur-base) var(--ease-standard), width var(--dur-base) var(--ease-standard);
+  transform: translateX(calc(var(--seg-index, 0) * (100% + 4px)));
+  transition: transform var(--dur-base) var(--ease-standard);
   z-index: 0;
 }
 .segmented button {
@@ -387,6 +393,7 @@ svg { display: block; }
   font-size: 14px;
   font-weight: 600;
   letter-spacing: -0.01em;
+  white-space: nowrap;
   cursor: pointer;
   transition: color var(--dur-fast) var(--ease-standard);
 }
@@ -445,7 +452,28 @@ svg { display: block; }
 .day.is-selected .dow { color: rgba(255, 255, 255, 0.78); }
 .day.is-selected .spark-bar { background: #FFFFFF; opacity: 0.6; }
 
-.cutoff { display: flex; flex-direction: column; gap: 8px; }
+.day-control { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
+.date-input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-standard);
+}
+.date-input:hover { border-color: var(--text-3); }
+.date-input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.day-hint { font-size: 13px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.control-note { font-size: 12px; line-height: 1.4; color: var(--text-3); }
+
+.cutoff { --thumb-pad: 14px; --thumb-size: 28px; display: flex; flex-direction: column; gap: 8px; }
+.cutoff.is-disabled { opacity: 0.55; }
+.cutoff.is-disabled input[type="range"] { cursor: not-allowed; }
 .cutoff-head {
   display: flex;
   align-items: center;
@@ -467,57 +495,92 @@ svg { display: block; }
 }
 .chip-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 
-input[type="range"] {
+/* Track and fill are drawn here, not by the native track, so both use the same
+   --thumb-pad inset as the tick labels. */
+.range-wrap { position: relative; height: 44px; margin-block: 2px; }
+.range-track,
+.range-fill {
+  position: absolute;
+  top: calc(50% - 2px);
+  height: 4px;
+  border-radius: 2px;
+  pointer-events: none;
+}
+.range-track { left: var(--thumb-pad); right: var(--thumb-pad); background: var(--hairline); }
+.range-fill {
+  left: var(--thumb-pad);
+  width: calc(var(--pct, 0) * (100% - 2 * var(--thumb-pad)));
+  background: var(--accent);
+}
+.cutoff.is-disabled .range-fill { background: var(--viz-vintage); }
+
+.range-wrap input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: 44px;
+  height: 100%;
   margin: 0;
   background: transparent;
   cursor: pointer;
 }
 input[type="range"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; border-radius: var(--r-pill); }
-input[type="range"]::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, var(--accent) 0 var(--fill, 42%), var(--hairline) var(--fill, 42%) 100%);
-}
-input[type="range"]::-moz-range-track {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--hairline);
-}
-input[type="range"]::-moz-range-progress {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--accent);
-}
-input[type="range"]::-webkit-slider-thumb {
+.range-wrap input[type="range"]::-webkit-slider-runnable-track {
   -webkit-appearance: none;
-  width: 28px;
-  height: 28px;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: transparent;
+}
+.range-wrap input[type="range"]::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: transparent;
+}
+.range-wrap input[type="range"]::-moz-range-progress {
+  height: 4px;
+  background: transparent;
+}
+.range-wrap input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
   margin-top: -12px;
   border-radius: 50%;
   background: var(--surface);
   border: 1px solid var(--hairline);
   box-shadow: var(--shadow-2);
 }
-input[type="range"]::-moz-range-thumb {
-  width: 26px;
-  height: 26px;
+.range-wrap input[type="range"]::-moz-range-thumb {
+  width: calc(var(--thumb-size) - 2px);
+  height: calc(var(--thumb-size) - 2px);
   border-radius: 50%;
   background: var(--surface);
   border: 1px solid var(--hairline);
   box-shadow: var(--shadow-2);
 }
+.cutoff.is-disabled input[type="range"]::-webkit-slider-thumb { background: var(--bg-grouped); }
+.cutoff.is-disabled input[type="range"]::-moz-range-thumb { background: var(--bg-grouped); }
+
+/* Tick labels are positioned with the same inset and ratio as the fill, so a
+   label sits under the thumb centre at every index. */
 .ticks {
-  display: flex;
-  justify-content: space-between;
+  position: relative;
+  height: 18px;
+  margin-top: -2px;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   color: var(--text-2);
-  padding-inline: 2px;
 }
+.ticks span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.cutoff.is-disabled .ticks span { color: var(--text-3); }
 .help { font-size: 13px; line-height: 1.45; color: var(--text-2); }
 .help span { color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
 
@@ -547,7 +610,20 @@ input[type="range"]::-moz-range-thumb {
 .sw-e { width: 10px; height: 10px; border-radius: 2px; background: linear-gradient(90deg, var(--viz-under), var(--viz-over)); }
 
 .chart-shell { position: relative; }
+.chart-host-wrap { position: relative; width: 100%; }
+.chart-host { width: 100%; }
+.chart-status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0; }
 .chart-svg { width: 100%; height: auto; overflow: visible; font-family: var(--font); }
+.grid-line { stroke: var(--hairline); stroke-width: 1; }
+.zero-line { stroke: var(--text-3); }
+.axis-text { font-size: 11px; fill: var(--text-2); }
+.whisker { stroke: var(--text-3); stroke-width: 1; }
+.horizon-box { fill: var(--viz-forecast); opacity: 0.85; }
+.hour-bar { opacity: 0.9; }
+.hour-bar.pos { fill: var(--viz-over); }
+.hour-bar.neg { fill: var(--viz-under); }
+.series-conservative { fill: none; stroke: var(--viz-conservative); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fill-error { fill: var(--viz-over); opacity: 0.12; }
 .chart-svg:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; border-radius: 8px; }
 .chart-svg text { font-family: var(--font); font-size: 12px; font-variant-numeric: tabular-nums; fill: var(--text-2); }
 .chart-svg .axis-unit { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; fill: var(--text-2); }
@@ -636,6 +712,8 @@ input[type="range"]::-moz-range-thumb {
 .data-table tbody tr.row-muted th, .data-table tbody tr.row-muted td { color: var(--text-3); }
 .data-table tbody tr.is-current { background: var(--bg-grouped); }
 .data-table tbody tr.is-current th { color: var(--accent); font-weight: 600; }
+.data-table tbody tr.is-selected { background: var(--bg-grouped); }
+.data-table tbody tr.is-selected > th:first-child { color: var(--accent); font-weight: 600; }
 .data-table .cell-action { text-align: right; width: 1%; }
 .btn-inline { min-height: 44px; padding: 0 14px; font-size: 13px; }
 .btn-inline:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
