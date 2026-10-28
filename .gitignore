@@ -1,0 +1,44 @@
+# Dependencies
+node_modules
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# Env files
+.env
+.env.local
+
+# Keep secrets out
+*.pem
+*.key
+secrets/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Test artifacts
+frontend/e2e/__parity__/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Keep master prompt out of git as instructed
+MASTER_PROMPT.md
