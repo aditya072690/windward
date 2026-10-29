@@ -42,3 +42,7 @@ htmlcov/
 
 # Keep master prompt out of git as instructed
 MASTER_PROMPT.md
+backend/.cache/
+backend/data/windward.real-snapshot.db
+backend/data/raw/
+backend_v2/.cache/

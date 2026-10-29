@@ -114,13 +114,14 @@ export function LedgerSection({ controls, onOpenCutoff }: Props) {
                       const isSelected = latest
                         ? rowCutoff === 'Latest'
                         : r?.cutoff === selectedCutoff
+                      const vintagesUsed = isNum((r as any)?.vintages_used) ? (r as any).vintages_used : (min && max ? 1 : (r as any)?.count_vintages)
                       return (
                         <tr
                           key={r?.cutoff ?? `row-${idx}`}
                           className={isSelected ? 'is-selected' : undefined}
                         >
                           <th scope="row">{r?.cutoff ?? '—'}</th>
-                          <td>{min && max ? `${min} → ${max}` : '—'}</td>
+                          <td>{vintagesUsed != null ? vintagesUsed : '—'}</td>
                           <td>{isNum(r?.mae_mw) ? nf0.format(r.mae_mw) : '—'}</td>
                           <td>
                             {isNum(r?.bias_mw)

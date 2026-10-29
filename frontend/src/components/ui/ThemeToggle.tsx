@@ -13,6 +13,7 @@ function getInitialTheme(): 'light' | 'dark' {
 
 export function ThemeToggle() {
   const [theme, setTheme] = useState<'light' | 'dark'>(getInitialTheme)
+  const [animating, setAnimating] = useState(false)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -24,12 +25,14 @@ export function ThemeToggle() {
   }, [theme])
 
   const toggle = () => {
+    setAnimating(true)
     setTheme((t) => (t === 'light' ? 'dark' : 'light'))
+    window.setTimeout(() => setAnimating(false), 320)
   }
 
   return (
     <button
-      className="btn-icon"
+      className={`btn-icon theme-toggle${animating ? ' is-animating' : ''}`}
       type="button"
       onClick={toggle}
       aria-label={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}

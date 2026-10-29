@@ -3,7 +3,7 @@ export function Footer() {
     <footer className="footer">
       <div className="container footer-inner">
         <div>
-          <p>Contains data from Elexon BMRS. Figures are historical (January 2026) — not an operational forecast.</p>
+          <p>Contains data from Elexon BMRS. Figures are historical — not an operational forecast.</p>
           <p style={{ marginTop: 8 }}>Built on the Windward design system · v1</p>
         </div>
         <span className="brand" aria-hidden="true">

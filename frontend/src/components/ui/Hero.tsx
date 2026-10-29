@@ -27,7 +27,7 @@ export function Hero() {
           </button>
         </div>
         <ul className="hero-meta">
-          <li>1–31 January 2026</li>
+          <li>Aug–Oct 2026</li>
           <li>Europe/London</li>
           <li>Elexon BMRS</li>
         </ul>

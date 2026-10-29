@@ -12,11 +12,11 @@ export type ControlsState = {
 
 export const DEFAULT_CONTROLS: ControlsState = {
   view: 'decision',
-  deliveryDate: '2026-01-16',
+  deliveryDate: '',
   cutoffIndex: CUTOFFS.indexOf(9),
 }
 
-export const DEFAULT_DAY_BOUNDS = { min: '2026-01-02', max: '2026-02-01' }
+export const DEFAULT_DAY_BOUNDS = { min: '2026-08-29', max: '2026-10-28' }
 
 export function pad2(n: number) {
   return String(n).padStart(2, '0')
@@ -54,7 +54,7 @@ export function decisionDateOf(deliveryDate: string): string {
   return addDays(deliveryDate, -1)
 }
 
-/** "Friday 16 January" (stable, timezone independent). */
+/** Stable long day label (timezone independent). */
 export function formatDayLong(iso: string): string {
   const d = parseIsoDate(iso)
   if (Number.isNaN(d.getTime())) return iso

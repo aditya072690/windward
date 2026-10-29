@@ -8,6 +8,7 @@ import {
   formatDayLong,
   type ControlsState,
 } from '../../lib/controls'
+import { useMeta } from '../../lib/useMeta'
 
 const nf0 = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 })
 const nf1 = new Intl.NumberFormat('en-GB', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
@@ -37,7 +38,8 @@ function peakOf(points: any[], key: 'forecast_mw' | 'actual_mw') {
 type Props = { controls: ControlsState }
 
 export function OverviewSection({ controls }: Props) {
-  const decisionDate = decisionDateOf(controls.deliveryDate)
+  const { meta, isLoading: metaLoading, isWarming } = useMeta()
+  const decisionDate = decisionDateOf(controls.deliveryDate || '')
   const cutoff = cutoffLabel(controls.cutoffIndex)
   const view = controls.view
   const latest = view === 'latest'
@@ -45,6 +47,7 @@ export function OverviewSection({ controls }: Props) {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['decision-forecast', decisionDate, cutoff, view],
     queryFn: () => fetchDecisionForecast(decisionDate, cutoff, view),
+    enabled: !!controls.deliveryDate && !metaLoading && !isWarming,
   })
 
   const summary = data?.summary ?? {}
@@ -70,12 +73,12 @@ export function OverviewSection({ controls }: Props) {
               <div className="section-sub" id="overview-sub">
                 <span>
                   Wind · {latest ? 'Latest vintages' : `Decision ${formatDayLong(decisionDate)}`} ·
-                  delivery {formatDayLong(controls.deliveryDate)}
-                  {latest ? '' : ` · cutoff ${cutoff}`}
+                  delivery {controls.deliveryDate ? formatDayLong(controls.deliveryDate) : '—'}
+                  {latest ? '' : controls.deliveryDate ? ` · cutoff ${cutoff}` : ''}
                 </span>
               </div>
             </div>
-            <span className="note">Elexon BMRS · data as of 31 Jan 2026</span>
+            <span className="note">Elexon BMRS · data as of {meta?.data_as_of || ''}</span>
           </div>
 
           {isError && (

@@ -16,10 +16,9 @@ import {
   isIsoDate,
   pad2,
   type ControlsState,
+  addDays,
 } from '../../lib/controls'
-
-const RANGE_START = '2026-01-01'
-const RANGE_END = '2026-01-31'
+import { useMeta } from '../../lib/useMeta'
 
 type Props = {
   controls: ControlsState
@@ -51,6 +50,7 @@ function peakTimeOf(points: any[]): string | null {
 }
 
 export function ChartsSection({ controls, onChange, dayBounds, metaLoading, metaError }: Props) {
+  const { meta, isWarming } = useMeta()
   const [hindsight, setHindsight] = useState(true)
   const [showMainTable, setShowMainTable] = useState(false)
   const [showHorizonTable, setShowHorizonTable] = useState(false)
@@ -60,22 +60,29 @@ export function ChartsSection({ controls, onChange, dayBounds, metaLoading, meta
   const cutoff = cutoffLabel(cutoffIndex)
   const view = controls.view
   const deliveryDate = controls.deliveryDate
-  const decisionDate = decisionDateOf(deliveryDate)
+  const decisionDate = deliveryDate ? decisionDateOf(deliveryDate) : ''
   const latest = view === 'latest'
+
+  const enabled = !!deliveryDate && !metaLoading && !isWarming && !metaError
 
   const mainQuery = useQuery({
     queryKey: ['decision-forecast', decisionDate, cutoff, view],
     queryFn: () => fetchDecisionForecast(decisionDate, cutoff, view),
+    enabled,
   })
 
+  const rangeStartDec = meta?.decision_window?.[0] || (dayBounds.min ? addDays(dayBounds.min, -1) : '2026-08-28')
+  const rangeEndDec = meta?.decision_window?.[1] || (dayBounds.max ? addDays(dayBounds.max, -1) : '2026-10-27')
   const horizonQuery = useQuery({
-    queryKey: ['by-horizon', RANGE_START, RANGE_END, cutoff, view],
-    queryFn: () => fetchByHorizon(RANGE_START, RANGE_END, cutoff, view),
+    queryKey: ['by-horizon', rangeStartDec, rangeEndDec, cutoff, view],
+    queryFn: () => fetchByHorizon(rangeStartDec, rangeEndDec, cutoff, view),
+    enabled: enabled && cutoff === '09:00',
   })
 
   const hourQuery = useQuery({
-    queryKey: ['by-hour', RANGE_START, RANGE_END, cutoff, view],
-    queryFn: () => fetchByHour(RANGE_START, RANGE_END, cutoff, view),
+    queryKey: ['by-hour', rangeStartDec, rangeEndDec, cutoff, view],
+    queryFn: () => fetchByHour(rangeStartDec, rangeEndDec, cutoff, view),
+    enabled: enabled && cutoff === '09:00',
   })
 
   const points = useMemo(
@@ -122,7 +129,7 @@ export function ChartsSection({ controls, onChange, dayBounds, metaLoading, meta
           <div>
             <h2 id="charts-title">Forecast vs actual</h2>
             <div className="section-sub" id="chart-sub">
-              <span>Wind · {formatDayLong(deliveryDate)} · Europe/London</span>
+              <span>Wind · {deliveryDate ? formatDayLong(deliveryDate) : '—'} · Europe/London</span>
             </div>
           </div>
         </div>
@@ -231,7 +238,7 @@ export function ChartsSection({ controls, onChange, dayBounds, metaLoading, meta
           <figure className="card chart-card">
             <figcaption className="chart-head">
               <div>
-                <h3 id="main-card-title">Wind · {formatDayLong(deliveryDate)}</h3>
+                <h3 id="main-card-title">Wind · {deliveryDate ? formatDayLong(deliveryDate) : '—'}</h3>
                 <div className="caption" id="main-card-sub">
                   <span>
                     48 half-hours · Europe/London · GW ·{' '}
@@ -285,7 +292,7 @@ export function ChartsSection({ controls, onChange, dayBounds, metaLoading, meta
                   isError={mainQuery.isError}
                   error={mainQuery.error}
                   isEmpty={!mainQuery.isLoading && !mainQuery.isError && points.length === 0}
-                  emptyMessage="No forecast data for this day and cutoff."
+                  emptyMessage="No data for this date"
                   debugData={points}
                 />
               </ErrorBoundary>
@@ -329,8 +336,8 @@ export function ChartsSection({ controls, onChange, dayBounds, metaLoading, meta
                   <h3>Error by horizon</h3>
                   <div className="caption">
                     <span>
-                      Absolute error percentiles by forecast age, all of January{' '}
-                      {latest ? 'at latest vintages' : `at ${cutoff}`}, MW
+                      Absolute error percentiles (|forecast − actual|, MW) by forecast age · {meta?.period_start || ''} to {meta?.delivery_day_max || ''}{' '}
+                      {latest ? 'at latest vintages' : `at ${cutoff}`}
                     </span>
                   </div>
                 </div>
@@ -353,7 +360,7 @@ export function ChartsSection({ controls, onChange, dayBounds, metaLoading, meta
                   isError={horizonQuery.isError}
                   error={horizonQuery.error}
                   isEmpty={!horizonQuery.isLoading && !horizonQuery.isError && buckets.length === 0}
-                  emptyMessage="No scored forecasts in January at this cutoff."
+                  emptyMessage="No scored forecasts in this period at this cutoff."
                   debugData={buckets}
                   minHeight={220}
                 />
@@ -395,7 +402,7 @@ export function ChartsSection({ controls, onChange, dayBounds, metaLoading, meta
                   <h3>Error by hour</h3>
                   <div className="caption">
                     <span>
-                      Mean signed error by hour · all of January{' '}
+                      Mean signed error (MW, forecast − actual) by hour · {meta?.period_start || ''} to {meta?.delivery_day_max || ''}{' '}
                       {latest ? 'at latest vintages' : `at ${cutoff}`} · positive means forecast ran high
                     </span>
                   </div>
@@ -419,7 +426,7 @@ export function ChartsSection({ controls, onChange, dayBounds, metaLoading, meta
                   isError={hourQuery.isError}
                   error={hourQuery.error}
                   isEmpty={!hourQuery.isLoading && !hourQuery.isError && hours.length === 0}
-                  emptyMessage="No scored forecasts in January at this cutoff."
+                  emptyMessage="No scored forecasts in this period at this cutoff."
                   debugData={hours}
                   minHeight={220}
                 />
@@ -512,7 +519,7 @@ function DayControl({
           }}
         />
         <span className="day-hint" id="day-help">
-          {formatDayShort(deliveryDate)} · delivery
+          {deliveryDate ? formatDayShort(deliveryDate) : '—'} · delivery
         </span>
       </div>
       <span className="control-note">
@@ -538,14 +545,15 @@ function gw(v: unknown): string {
   return (v / 1000).toFixed(2)
 }
 
+const nf0mw = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 })
 function mw(v: unknown): string {
   if (typeof v !== 'number' || !Number.isFinite(v)) return '—'
-  return Math.round(v).toString()
+  return nf0mw.format(Math.round(v))
 }
 
 function signedMw(v: unknown): string {
   if (typeof v !== 'number' || !Number.isFinite(v)) return '—'
-  return `${v >= 0 ? '+' : ''}${Math.round(v)}`
+  return `${v >= 0 ? '+' : ''}${nf0mw.format(Math.round(v))}`
 }
 
 function num(v: unknown, digits: number): string {

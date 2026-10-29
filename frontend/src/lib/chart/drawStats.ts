@@ -35,10 +35,10 @@ export function drawHorizonChart(host: HTMLElement, buckets: any[], width: numbe
   clear(host)
   if (width < 80 || !Array.isArray(buckets) || buckets.length === 0) return
   const height = 220
-  const padL = 44
-  const padR = 14
-  const padT = 16
-  const padB = 42
+  const padL = 56
+  const padR = 18
+  const padT = 24
+  const padB = 46
   const plotW = width - padL - padR
   const plotH = height - padT - padB
   if (plotW <= 10 || plotH <= 10) return
@@ -54,12 +54,13 @@ export function drawHorizonChart(host: HTMLElement, buckets: any[], width: numbe
   const barW = Math.max(4, Math.min(28, stepX * 0.55))
 
   // Baseline + y ticks
+  const nf0 = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 })
   for (let i = 0; i <= 4; i++) {
     const v = (maxV / 4) * i
     const y = padT + plotH - (plotH * v) / maxV
     el('line', { x1: padL, x2: padL + plotW, y1: y, y2: y, class: 'grid-line' }, svg)
     const t = el('text', { x: padL - 8, y: y + 4, 'text-anchor': 'end', class: 'axis-text' }, svg)
-    t.textContent = Math.round(v).toString()
+    t.textContent = nf0.format(Math.round(v))
   }
 
   buckets.forEach((b, i) => {
@@ -84,13 +85,14 @@ export function drawHorizonChart(host: HTMLElement, buckets: any[], width: numbe
       rx: 2,
     }, svg)
 
-    if (i % 2 === 0 || buckets.length <= 8) {
+    if (i % 4 === 0 || buckets.length <= 12) {
       const t = el('text', { x: cx, y: height - 22, 'text-anchor': 'middle', class: 'axis-text' }, svg)
-      t.textContent = b?.bucket ?? ''
+      const label = b?.bucket ?? (b?.horizon_h != null ? `${b.horizon_h}h` : '')
+      t.textContent = label
     }
   })
 
-  const unit = el('text', { x: padL - 8, y: padT - 4, 'text-anchor': 'end', class: 'axis-unit' }, svg)
+  const unit = el('text', { x: padL - 12, y: padT - 8, 'text-anchor': 'end', class: 'axis-unit' }, svg)
   unit.textContent = 'MW'
   const axis = el('text', { x: padL + plotW / 2, y: height - 4, 'text-anchor': 'middle', class: 'axis-text' }, svg)
   axis.textContent = 'forecast age (h)'
@@ -101,10 +103,10 @@ export function drawHourBars(host: HTMLElement, hours: any[], width: number) {
   clear(host)
   if (width < 80 || !Array.isArray(hours) || hours.length === 0) return
   const height = 220
-  const padL = 44
-  const padR = 14
-  const padT = 16
-  const padB = 42
+  const padL = 56
+  const padR = 18
+  const padT = 24
+  const padB = 46
   const plotW = width - padL - padR
   const plotH = height - padT - padB
   if (plotW <= 10 || plotH <= 10) return
@@ -121,11 +123,12 @@ export function drawHourBars(host: HTMLElement, hours: any[], width: number) {
 
   el('line', { x1: padL, x2: padL + plotW, y1: zero, y2: zero, class: 'grid-line zero-line' }, svg)
 
+  const nf0 = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 })
   ;[-maxAbs, -maxAbs / 2, maxAbs / 2, maxAbs].forEach((v) => {
     const y = zero - v * scale
     el('line', { x1: padL, x2: padL + plotW, y1: y, y2: y, class: 'grid-line' }, svg)
     const t = el('text', { x: padL - 8, y: y + 4, 'text-anchor': 'end', class: 'axis-text' }, svg)
-    t.textContent = Math.round(v).toString()
+    t.textContent = nf0.format(Math.round(v))
   })
 
   hours.forEach((h, i) => {
@@ -141,13 +144,13 @@ export function drawHourBars(host: HTMLElement, hours: any[], width: number) {
       class: v >= 0 ? 'hour-bar pos' : 'hour-bar neg',
       rx: 2,
     }, svg)
-    if (i % 3 === 0) {
+    if (i % 4 === 0) {
       const t = el('text', { x: cx, y: height - 22, 'text-anchor': 'middle', class: 'axis-text' }, svg)
       t.textContent = `${String(h?.hour ?? i).padStart(2, '0')}`
     }
   })
 
-  const unit = el('text', { x: padL - 8, y: padT - 4, 'text-anchor': 'end', class: 'axis-unit' }, svg)
+  const unit = el('text', { x: padL - 12, y: padT - 8, 'text-anchor': 'end', class: 'axis-unit' }, svg)
   unit.textContent = 'MW'
   const axis = el('text', { x: padL + plotW / 2, y: height - 4, 'text-anchor': 'middle', class: 'axis-text' }, svg)
   axis.textContent = 'hour (Europe/London)'

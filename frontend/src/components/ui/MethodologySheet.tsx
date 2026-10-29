@@ -37,7 +37,7 @@ export function MethodologySheet() {
         </p>
         <h3>Time and missing data</h3>
         <p>
-          Timestamps are stored in UTC and displayed in <strong>Europe/London</strong>. January 2026 has no DST transition. Half-hours with no forecast by the cutoff are reported as missing and excluded from metrics; coverage is reported.
+          Timestamps are stored in UTC and displayed in <strong>Europe/London</strong>. Half-hours with no forecast by the cutoff are reported as missing and excluded from metrics; coverage is reported.
         </p>
         <h3>Metrics</h3>
         <p>
@@ -49,14 +49,14 @@ export function MethodologySheet() {
         </p>
         <h3>Percentiles and horizons</h3>
         <p>
-          <strong>Error by horizon</strong> is computed over the whole January window at the selected cutoff, bucketed in 3 h buckets up to 48 h, reporting P50/P90/P95 of |error| (MW). <strong>Error by hour</strong> reports mean signed error by London hour.
+          <strong>Error by horizon</strong> is computed over the whole window at the selected cutoff, bucketed in 3 h buckets up to 48 h, reporting P50/P90/P95 of |error| (MW). <strong>Error by hour</strong> reports mean signed error by London hour.
         </p>
         <h3>Data lineage</h3>
         <p>
           Data from <strong>Elexon BMRS</strong>: <code>FUELHH</code> (actual generation, filtered <code>fuelType = WIND</code>) and <code>WINDFOR</code> (wind forecast, with <code>publishTime</code>). Resolution 30 minutes. Served from a committed, validated SQLite snapshot opened read-only at runtime.
         </p>
         <div className="rule"></div>
-        <p>Figures are historical (January 2026) — not an operational forecast.</p>
+        <p>Figures are historical — not an operational forecast.</p>
       </div>
     </dialog>
   )
