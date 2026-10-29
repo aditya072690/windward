@@ -7,10 +7,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml ./
-RUN pip install --no-cache-dir .
+RUN pip install .
 
-COPY app/ ./app/
-COPY *.py ./
+COPY . .
 
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8000
