@@ -13,3 +13,5 @@ services:
         value: .cache/elexon
       - key: PORT
         value: 8000
+
+    healthCheckPath: /health
