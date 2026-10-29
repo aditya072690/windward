@@ -6,10 +6,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY backend_v2/pyproject.toml ./pyproject.toml
+COPY pyproject.toml ./
 RUN pip install --no-cache-dir .
 
-COPY backend_v2/ ./
+COPY . .
 
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8000
