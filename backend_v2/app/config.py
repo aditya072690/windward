@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from datetime import date, timedelta
+import os
 
 
 class Settings(BaseSettings):
@@ -7,7 +8,7 @@ class Settings(BaseSettings):
     period_end_exclusive: str = "2026-10-29"
     cache_dir: str = ".cache/elexon"
     ttl_seconds_new: int = 300
-    cors_origins: str = "http://localhost:5173,http://localhost:8080"
+    cors_origins: str = "http://localhost:5173,http://localhost:8080,https://windward-git-main-aditya072690s-projects.vercel.app,https://windward.vercel.app"
 
     @property
     def delivery_day_min(self) -> str:
@@ -26,7 +27,9 @@ class Settings(BaseSettings):
         return (date.fromisoformat(self.delivery_day_max) - timedelta(days=1)).isoformat()
 
     def cors_origins_list(self):
-        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        origins = [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        # Allow all vercel.app preview deployments
+        return origins
 
 
 settings = Settings()
