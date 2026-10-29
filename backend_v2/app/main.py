@@ -22,9 +22,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Windward API v2", version="0.1.0", lifespan=lifespan)
 
+origins = settings.cors_origins_list()
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list(),
+    allow_origins=origins,
+    allow_origin_regex=r"https://.*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
