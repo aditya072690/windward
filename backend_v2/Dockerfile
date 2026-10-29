@@ -6,10 +6,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml ./
-RUN pip install .
+# Try to copy from current dir first (if context is backend_v2)
+COPY pyproject.toml ./pyproject.toml 2>/dev/null || COPY backend_v2/pyproject.toml ./pyproject.toml
+RUN pip install --no-cache-dir .
 
-COPY . .
+COPY . . 2>/dev/null || COPY backend_v2/ ./
 
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8000
