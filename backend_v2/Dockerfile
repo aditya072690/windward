@@ -6,15 +6,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Try to copy from current dir first (if context is backend_v2)
-COPY pyproject.toml ./pyproject.toml 2>/dev/null || COPY backend_v2/pyproject.toml ./pyproject.toml
+COPY pyproject.toml .
 RUN pip install --no-cache-dir .
 
-COPY . . 2>/dev/null || COPY backend_v2/ ./
+COPY . .
 
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8000
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "cd /app && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
