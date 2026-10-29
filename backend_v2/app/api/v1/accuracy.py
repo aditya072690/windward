@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from datetime import date, timedelta
 from ...services.data_service import ds
 from ...domain.vintage import select_and_score_day
+from ...domain.vintage_fast import select_and_score_day_fast
 from ...domain.metrics import compute_mae_bias
 
 
@@ -12,23 +13,23 @@ router = APIRouter(tags=["accuracy"])
 def ledger(decision_date: str = None, view: str = "decision", cutoff: str = None, delivery_date: str = None):
     try:
         from ...config import settings
-        from datetime import date, timedelta
         if decision_date is None and delivery_date is not None:
             decision_date = (date.fromisoformat(delivery_date) - timedelta(days=1)).isoformat()
         if decision_date is None:
             decision_date = settings.decision_day_max
         ddate = delivery_date or (date.fromisoformat(decision_date) + timedelta(days=1)).isoformat()
-        forecasts = ds.get_forecasts_for_period()
-        actuals_list = ds.get_actuals_for_period()
-        actuals = {a["start_time"]: a["generation_mw"] for a in actuals_list if a["settlement_date"] == ddate}
+        ds.get_forecasts_for_period()
+        ds.get_actuals_for_period()
+        by_hour_idx = ds.get_forecasts_by_hour_indexed()
+        by_half_idx = ds.get_forecasts_by_half_indexed()
+        actuals = ds.get_actuals_by_date(ddate)
         cutoffs = ["00:00", "03:00", "06:00", "09:00", "12:00", "15:00", "18:00", "21:00"]
         rows = []
         for c in cutoffs:
-            points = select_and_score_day(decision_date, ddate, c, forecasts, actuals)
-            metrics = compute_mae_bias(points)
+            points = select_and_score_day_fast(decision_date, ddate, c, by_hour_idx, by_half_idx, actuals)
             errors = []
             peak_mw = None
-            publish_times = set()
+            vintage_list = []
             for p in points:
                 f = p.get("forecast_mw")
                 a = p.get("actual_mw")
@@ -36,16 +37,12 @@ def ledger(decision_date: str = None, view: str = "decision", cutoff: str = None
                     if peak_mw is None or f > peak_mw:
                         peak_mw = float(f)
                 if p.get("publish_time"):
-                    publish_times.add(p["publish_time"])
+                    vintage_list.append(p["publish_time"])
                 if isinstance(f, (int, float)) and isinstance(a, (int, float)):
                     errors.append((float(f), float(a)))
-            mae_mw = sum(abs(f - a) for f, a in errors) / len(errors) if errors else metrics.get("mae_mw")
-            bias_mw = sum(f - a for f, a in errors) / len(errors) if errors else metrics.get("bias_mw")
-            vintage_list = []
-            for p in points:
-                if p.get("publish_time"):
-                    vintage_list.append(p["publish_time"])
-            vintages_used = len(set(vintage_list)) if vintage_list else (len(publish_times) if publish_times else None)
+            mae_mw = sum(abs(f - a) for f, a in errors) / len(errors) if errors else None
+            bias_mw = sum(f - a for f, a in errors) / len(errors) if errors else None
+            vintages_used = len(set(vintage_list)) if vintage_list else None
             row = {
                 "cutoff": c,
                 "decision_date": decision_date,
@@ -70,15 +67,16 @@ def by_horizon(start: str = None, end: str = None, cutoff: str = "09:00", view: 
             start = settings.decision_day_min
         if end is None:
             end = settings.decision_day_max
-        forecasts = ds.get_forecasts_for_period()
-        actuals_list = ds.get_actuals_for_period()
-        from collections import defaultdict
-        bh = defaultdict(list)
+        ds.get_forecasts_for_period()
+        ds.get_actuals_for_period()
+        by_hour_idx = ds.get_forecasts_by_hour_indexed()
+        by_half_idx = ds.get_forecasts_by_half_indexed()
+        bh = {}
         for i in range((date.fromisoformat(end) - date.fromisoformat(start)).days + 1):
             ddec = (date.fromisoformat(start) + timedelta(days=i)).isoformat()
             ddate = (date.fromisoformat(ddec) + timedelta(days=1)).isoformat()
-            actuals = {a["start_time"]: a["generation_mw"] for a in actuals_list if a["settlement_date"] == ddate}
-            points = select_and_score_day(ddec, ddate, cutoff, forecasts, actuals)
+            actuals = ds.get_actuals_by_date(ddate)
+            points = select_and_score_day_fast(ddec, ddate, cutoff, by_hour_idx, by_half_idx, actuals)
             for p in points:
                 try:
                     from datetime import datetime
@@ -88,14 +86,14 @@ def by_horizon(start: str = None, end: str = None, cutoff: str = "09:00", view: 
                         pdt = datetime.fromisoformat(ps.replace("Z", "+00:00"))
                         sdt = datetime.fromisoformat(st.replace("Z", "+00:00"))
                         h = (sdt - pdt).total_seconds() / 3600.0
-                        if h < 0:
-                            continue
-                        if h > 72:
+                        if h < 0 or h > 72:
                             continue
                         b = int(h)
                         f = p.get("forecast_mw")
                         a = p.get("actual_mw")
                         if isinstance(f, (int, float)) and isinstance(a, (int, float)):
+                            if b not in bh:
+                                bh[b] = []
                             bh[b].append(abs(float(f) - float(a)))
                 except Exception:
                     continue
@@ -123,14 +121,16 @@ def by_hour(start: str = None, end: str = None, cutoff: str = "09:00", view: str
             start = settings.decision_day_min
         if end is None:
             end = settings.decision_day_max
-        forecasts = ds.get_forecasts_for_period()
-        actuals_list = ds.get_actuals_for_period()
+        ds.get_forecasts_for_period()
+        ds.get_actuals_for_period()
+        by_hour_idx = ds.get_forecasts_by_hour_indexed()
+        by_half_idx = ds.get_forecasts_by_half_indexed()
         buckets = {}
         for i in range((date.fromisoformat(end) - date.fromisoformat(start)).days + 1):
             ddec = (date.fromisoformat(start) + timedelta(days=i)).isoformat()
             ddate = (date.fromisoformat(ddec) + timedelta(days=1)).isoformat()
-            actuals = {a["start_time"]: a["generation_mw"] for a in actuals_list if a["settlement_date"] == ddate}
-            points = select_and_score_day(ddec, ddate, cutoff, forecasts, actuals)
+            actuals = ds.get_actuals_by_date(ddate)
+            points = select_and_score_day_fast(ddec, ddate, cutoff, by_hour_idx, by_half_idx, actuals)
             from ...domain.timeutil import LONDON
             from datetime import datetime
             for p in points:
@@ -154,7 +154,6 @@ def by_hour(start: str = None, end: str = None, cutoff: str = "09:00", view: str
             mse = sum(errs) / len(errs)
             hours_res.append({"hour": lh, "hour_london": lh, "mean_signed_error_mw": mse, "mae_mw": sum(abs(x) for x in errs)/len(errs), "bias_mw": mse, "count": len(errs)})
         if len(hours_res) == 0:
-            # fallback to any
             for lh, errs in buckets.items():
                 if not errs: continue
                 mse = sum(errs)/len(errs)
