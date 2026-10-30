@@ -30,8 +30,13 @@ export function WindwardPage() {
   }, [meta])
 
   useEffect(() => {
-    if (meta && (!controls.deliveryDate || controls.deliveryDate < dayBounds.min || controls.deliveryDate > dayBounds.max)) {
-      setControls((c) => ({ ...c, deliveryDate: dayBounds.max }))
+    if (meta) {
+      if (!controls.deliveryDate || controls.deliveryDate < dayBounds.min || controls.deliveryDate > dayBounds.max) {
+        setControls((c) => ({ ...c, deliveryDate: dayBounds.max }))
+      } else if (controls.deliveryDate !== dayBounds.max) {
+        // Auto-update to latest available date when data changes
+        setControls((c) => ({ ...c, deliveryDate: dayBounds.max }))
+      }
     }
   }, [meta, dayBounds.min, dayBounds.max])
 

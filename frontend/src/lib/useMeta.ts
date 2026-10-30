@@ -22,14 +22,14 @@ export function useMeta() {
     queryKey: ['meta'],
     queryFn: fetchMeta,
     refetchInterval: (data: any) => {
-      if (data?.state?.data?.status === 'warming' || data?.status === 'warming') {
+      const res = (data as any)?.state?.data || (data as any)
+      if (res?.status === 'warming') {
         return 3000
       }
-      const res = data as any
-      if (res && res.status === 'warming') return 3000
-      return false
+      return 60000
     },
-    staleTime: Infinity,
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
   })
 
   const data: any = query.data
